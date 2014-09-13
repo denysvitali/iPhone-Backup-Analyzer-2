@@ -1,15 +1,12 @@
 from PySide import QtCore, QtGui
 from addressbook_ui import Ui_AddressBook
 
-import os, sqlite3, sys
+import os, sqlite3
 from datetime import datetime
 from string import *
 
 PLUGIN_NAME = "Address Book"
 import plugins_utils
-
-# retrieve modules from ipba root directory
-import plistutils
 
 class AddressBookWidget(QtGui.QWidget):
 
@@ -438,7 +435,8 @@ class AddressBookWidget(QtGui.QWidget):
 			personData = []
 			
 			contactID = person['ROWID']
-
+			
+			name = ''
 			# complete name
 			if (person['First'] != None):
 				name = person['First']
