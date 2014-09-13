@@ -841,10 +841,15 @@ class IPBA2(QtGui.QMainWindow):
 		msgBox = QtGui.QMessageBox()
 		msgBox.setText(text)
 		
-		detailedText = "Type: %s"%sys.exc_info()[0].__name__
-		detailedText += "\nDescription: %s"%str(sys.exc_info()[1])
-		detailedText += "\nFile: %s"%os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-		detailedText += "\nLine: %s"%str(sys.exc_info()[2].tb_lineno)
+		info = sys.exc_info()
+		frame = info[2]
+		while frame.tb_next is not None:
+			frame = frame.tb_next
+
+		detailedText = "Type: %s"%info[0].__name__
+		detailedText += "\nDescription: %s"%str(info[1])
+		detailedText += "\nFile: %s"%os.path.split(frame.tb_frame.f_code.co_filename)[1]
+		detailedText += "\nLine: %s"%str(frame.tb_lineno)
 		
 		detailedText += "\n\nTraceback:\n"
 		exc_type, exc_value, exc_traceback = sys.exc_info()
