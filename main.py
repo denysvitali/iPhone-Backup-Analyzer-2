@@ -388,7 +388,7 @@ class SqliteWidget(QtGui.QWidget):
 				
 				recordCount = 0
 				try:
-					tempcur.execute("SELECT count(*) FROM ?", (table_name,))
+					tempcur.execute("SELECT count(*) FROM ?;", (table_name,))
 					elem_count = tempcur.fetchone()
 					recordCount = int(elem_count[0])
 	
@@ -481,14 +481,13 @@ class SqliteWidget(QtGui.QWidget):
 					columnIndex = 0
 					for field in record:
 					
-						#import unicodedata
-						try:
-							value = str(field)
-						except:
-							try:
-								value = str(field).encode("utf8", "replace") + " (decoded unicode)"
-							except:
-								value = "Unreadable (data)"
+						if isinstance(field, (str, unicode)):
+							value = field
+						else:
+						    try:
+						    	value = str(field)
+						    except:
+						    	value = "Unreadable (data)"
 					
 						#maybe an image?
 						if (fieldsNames[columnIndex] == "data"):
@@ -1553,18 +1552,12 @@ class IPBA2(QtGui.QMainWindow):
 			# check if file has properties to store in the properties table
 			if (fileinfo['numprops'] > 0):
 		
-				query = "SELECT id FROM indice WHERE domain = ? AND fileid = ? LIMIT 1;"
-				 
-				self.cursor.execute(query, (domain.replace("'", "''"), fileinfo['fileID']))
-				id = self.cursor.fetchall()
-				
-				if (len(id) > 0):
-					index = id[0][0]
-					properties = fileinfo['properties']
+				index = self.cursor.lastrowid
+				properties = fileinfo['properties']
 
-					query = "INSERT INTO properties(file_id, property_name, property_val) VALUES (?, ?, ?);"
-					rows = ((index, name, self.hex2nums(val)) for name, val in properties.items())
-					self.cursor.executemany(query, rows);
+				query = "INSERT INTO properties(file_id, property_name, property_val) VALUES (?, ?, ?);"
+				rows = ((index, name, self.hex2nums(val)) for name, val in properties.items())
+				self.cursor.executemany(query, rows);
 			
 				#print("File: %s, properties: %i"%(domain + ":" + filepath + "/" + filename, fileinfo['numprops']))
 				#print(fileinfo['properties'])

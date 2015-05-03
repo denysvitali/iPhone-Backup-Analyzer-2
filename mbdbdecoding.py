@@ -13,21 +13,23 @@
 
 #!/usr/bin/env python
 import sys
+from struct import unpack
 
 def getint(data, offset, intsize):
     """Retrieve an integer (big-endian) and new offset from the current offset"""
     value = 0
-    while intsize > 0:
+    for i in range(intsize):
         value = (value<<8) + ord(data[offset])
-        offset = offset + 1
-        intsize = intsize - 1
+        offset += 1
     return value, offset
 
 def getstring(data, offset):
     """Retrieve a string and new offset from the current offset into the data"""
-    if data[offset] == chr(0xFF) and data[offset+1] == chr(0xFF):
-        return '', offset+2 # Blank string
-    length, offset = getint(data, offset, 2) # 2-byte length
+    (length,) = unpack('>h', data[offset:offset+2])
+    offset += 2
+    if length == -1:
+        return '', offset # Blank string
+
     value = data[offset:offset+length]
     return value, (offset + length)
 
@@ -45,17 +47,13 @@ def process_mbdb_file(filename):
         fileinfo['linktarget'], offset = getstring(data, offset)
         fileinfo['datahash'], offset = getstring(data, offset)
         fileinfo['unknown1'], offset = getstring(data, offset)
-        fileinfo['mode'], offset = getint(data, offset, 2)
-        fileinfo['unknown2'], offset = getint(data, offset, 4)
-        fileinfo['unknown3'], offset = getint(data, offset, 4)
-        fileinfo['userid'], offset = getint(data, offset, 4)
-        fileinfo['groupid'], offset = getint(data, offset, 4)
-        fileinfo['mtime'], offset = getint(data, offset, 4)
-        fileinfo['atime'], offset = getint(data, offset, 4)
-        fileinfo['ctime'], offset = getint(data, offset, 4)
-        fileinfo['filelen'], offset = getint(data, offset, 8)
-        fileinfo['flag'], offset = getint(data, offset, 1)
-        fileinfo['numprops'], offset = getint(data, offset, 1)
+        
+        fileinfo['mode'], fileinfo['unknown2'], fileinfo['unknown3'], \
+        fileinfo['userid'], fileinfo['groupid'], fileinfo['mtime'], \
+        fileinfo['atime'], fileinfo['ctime'], fileinfo['filelen'], \
+        fileinfo['flag'], fileinfo['numprops'] = unpack('>H7IQ2B', data[offset:offset+40])
+        offset += 40
+        
         fileinfo['properties'] = {}
         for ii in range(fileinfo['numprops']):
             propname, offset = getstring(data, offset)
