@@ -697,10 +697,10 @@ class SkypeWidget(QtGui.QWidget):
 		self.cursor = cursor
 		self.backup_path = path
 		
-		self.filename = os.path.join(self.backup_path, plugins_utils.realFileName(cursor, filename="main.db", domaintype="AppDomain", domain="com.skype.skype"))
+		realname = (plugins_utils.realFileName(cursor, filename="main.db", domaintype="AppDomain", domain="com.skype.skype") or
+			  plugins_utils.realFileName(cursor, filename="main.db", domaintype="AppDomain", domain="com.skype.SkypeForiPad"))
 
-		# TEST ONLY
-		#self.filename = "D:\Forensics\iPhone forensics\iPhone-Backup-Analyzer-2\main.db"
+		self.filename = os.path.join(self.backup_path, realname)
 
 		# check if files exist
 		if (not os.path.isfile(self.filename)):
