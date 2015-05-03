@@ -4,6 +4,7 @@ from whatsapp_ui import Ui_WhatsAppBrowser
 import os, sys, sqlite3, shutil, threading, webbrowser
 from datetime import datetime
 from collections import namedtuple
+from decimal import Decimal
 
 PLUGIN_NAME = "WhatsApp Browser"
 import plugins_utils
@@ -24,7 +25,7 @@ class ThreadedQuery(threading.Thread):
 		
 			# query results are retrieved as a namedtuple
 			# (this step must be before cursor instantiation)
-			tempdb.row_factory = namedtuple_factory                        	
+			tempdb.row_factory = sqlite3.Row                        	
 			tempcur = tempdb.cursor()
 
 			
@@ -167,10 +168,10 @@ class WABrowserWidget(QtGui.QWidget):
 	def formatDate(self, mactime):
 		# if timestamp is not like "304966548", but like "306350664.792749",
 		# then just use the numbers in front of the "."
-		mactime = str(mactime)
-		if mactime.find(".") > -1:
-			mactime = mactime[:mactime.find(".")]
-		date_time = datetime.fromtimestamp(int(mactime)+11323*60*1440)
+		if mactime is None:
+			return None
+		mactime = int(Decimal(mactime))
+		date_time = datetime.fromtimestamp(mactime+11323*60*1440)
 		return date_time
 
 	
@@ -347,11 +348,15 @@ class WABrowserWidget(QtGui.QWidget):
 		progress.show()
 				
 		# ZWAMESSAGE table
-		query = "SELECT * FROM ZWAMESSAGE WHERE ZCHATSESSION=? ORDER BY ZMESSAGEDATE ASC;"
+		query = """
+			SELECT ZWAMESSAGE.*, ZWAGROUPMEMBER.ZCONTACTNAME, ZWAGROUPMEMBER.ZMEMBERJID FROM ZWAMESSAGE
+			LEFT JOIN ZWAGROUPMEMBER ON ZWAGROUPMEMBER.Z_PK = ZWAMESSAGE.ZGROUPMEMBER
+			WHERE ZWAMESSAGE.ZCHATSESSION = ?
+            ORDER BY ZWAMESSAGE.ZMESSAGEDATE ASC;"""
 
 		# call a thread to query the db showing a progress bar
 		queryTh = ThreadedQuery(self.fname_chatstorage,query,[zchatsession])
-		queryTh.start()                
+		queryTh.start()
 		while queryTh.isAlive():
 			QtGui.QApplication.processEvents()
 
@@ -449,45 +454,43 @@ class WABrowserWidget(QtGui.QWidget):
 		self.ui.msgsWidget.setRowCount(len(msgs))
 		
 		row = 0		
-		for msg in msgs:               
+		for msg in msgs:
+			fields = set(msg.keys())
 	
-			if hasattr(msg, 'Z_PK'):                                         
+			if 'Z_PK' in fields:
 				newItem = QtGui.QTableWidgetItem()
-				newItem.setData(QtCore.Qt.DisplayRole,msg.Z_PK)
+				newItem.setData(QtCore.Qt.DisplayRole, msg['Z_PK'])
 				self.ui.msgsWidget.setItem(row, 0, newItem) 	
-			if hasattr(msg, 'ZFROMJID'):
+			if 'ZFROMJID' in fields:
 				fromstring = "Me"
-				if msg.ZFROMJID is not None:
-					fromstring = msg.ZFROMJID
+				if msg['ZFROMJID'] is not None:
+					fromstring = msg['ZFROMJID']
 				newItem = QtGui.QTableWidgetItem()
 				newItem.setData(QtCore.Qt.DisplayRole,fromstring)
 				self.ui.msgsWidget.setItem(row, 1, newItem)
-			if hasattr(msg, 'ZMESSAGEDATE'):    
-				newItem = QtGui.QTableWidgetItem(str(self.formatDate(msg.ZMESSAGEDATE)))
+			if 'ZMESSAGEDATE' in fields:
+				newItem = QtGui.QTableWidgetItem(str(self.formatDate(msg['ZMESSAGEDATE'])))
 				self.ui.msgsWidget.setItem(row, 2, newItem)	
-			if hasattr(msg, 'ZTEXT'):    			
-				newItem = QtGui.QTableWidgetItem(msg.ZTEXT)
+			if 'ZTEXT' in fields:
+				newItem = QtGui.QTableWidgetItem(msg['ZTEXT'])
 				self.ui.msgsWidget.setItem(row, 3, newItem)	
-			if hasattr(msg, 'ZMESSAGESTATUS'):    
+			if 'ZMESSAGESTATUS' in fields:
 				newItem = QtGui.QTableWidgetItem()
-				newItem.setData(QtCore.Qt.DisplayRole,msg.ZMESSAGESTATUS)
+				newItem.setData(QtCore.Qt.DisplayRole,msg['ZMESSAGESTATUS'])
 				self.ui.msgsWidget.setItem(row, 5, newItem)
-						
-			if hasattr(msg, 'ZGROUPMEMBER'):
-				if msg.ZGROUPMEMBER is not None:
-					gmember = self.getGroupInfo(msg.ZGROUPMEMBER)
-					fromstring = ""
-					if gmember is not None:
-						fromstring = gmember.ZCONTACTNAME + " - " + gmember.ZMEMBERJID 
-					else:
-						fromstring = "N/A"
-					newItem = QtGui.QTableWidgetItem(fromstring)
-					self.ui.msgsWidget.setItem(row, 1, newItem)
-						
-			if hasattr(msg, 'ZMEDIAITEM'):                                
-				mediaItem = QtGui.QTableWidgetItem("")                                
-				if msg.ZMEDIAITEM is not None:
-					media = self.getMediaItem(msg.ZMEDIAITEM)
+
+			if 'ZGROUPMEMBER' in fields and msg['ZGROUPMEMBER'] is not None:
+				if msg['ZCONTACTNAME'] is not None:
+					fromstring = msg['ZCONTACTNAME'] + " - " + msg['ZMEMBERJID']
+				else:
+					fromstring = "N/A"
+				newItem = QtGui.QTableWidgetItem(fromstring)
+				self.ui.msgsWidget.setItem(row, 1, newItem)
+
+			if 'ZMEDIAITEM' in fields:
+				mediaItem = QtGui.QTableWidgetItem("")
+				if msg['ZMEDIAITEM'] is not None:
+					media = self.getMediaItem(msg['ZMEDIAITEM'])
 					msgcontent = ""
 					# VCARD info
 					if (media.ZVCARDNAME and media.ZVCARDSTRING) is not None:
@@ -549,10 +552,9 @@ class WABrowserWidget(QtGui.QWidget):
 						
 				self.ui.msgsWidget.setItem(row, 4, mediaItem)                                                
 
-			if hasattr(msg, 'ZISFROMME'):
-				if msg.ZISFROMME is 1:
-					for i in range(6):
-						self.ui.msgsWidget.item(row,i).setBackground(QtCore.Qt.green)
+			if 'ZISFROMME' in fields and msg['ZISFROMME'] is 1:
+				for i in range(6):
+					self.ui.msgsWidget.item(row,i).setBackground(QtCore.Qt.green)
 				
 			row = row + 1
 	
