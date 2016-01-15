@@ -1627,7 +1627,7 @@ class IPBA2(QtGui.QMainWindow):
 				pathToNode = {'': rootNode}
 
 				for nodeData in nodes:
-					path = str(nodeData[0])
+					path = unicode(nodeData[0])
 					
 					# finding parent directory 
 					lookup = path
@@ -1651,7 +1651,7 @@ class IPBA2(QtGui.QMainWindow):
 						lookup = posixpath.join(lookup, component)
 						pathToNode[lookup] = newPath
 
-					file_name = str(nodeData[1].encode("utf-8"))
+					file_name = unicode(nodeData[1])
 					if (nodeData[2]) < 1024:
 						file_dim = str(nodeData[2]) + " b"
 					else:
