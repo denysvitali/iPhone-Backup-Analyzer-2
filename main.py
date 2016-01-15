@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 
 '''
  iPhone Backup Analyzer 2
@@ -388,7 +388,7 @@ class SqliteWidget(QtGui.QWidget):
 				
 				recordCount = 0
 				try:
-					tempcur.execute("SELECT count(*) FROM ?;", (table_name,))
+					tempcur.execute("SELECT count(*) FROM {}".format(table_name))
 					elem_count = tempcur.fetchone()
 					recordCount = int(elem_count[0])
 	
@@ -1352,7 +1352,7 @@ class IPBA2(QtGui.QMainWindow):
 		item_id = self.getSelectedElementID()
 		if (data == None or item_id == None): return
 		
-		item_name = str(data['file_name'])
+		item_name = unicode(data['file_name'])
 		item_permissions = str(data['permissions'])
 		item_userid = str(data['userid'])
 		item_groupid = str(data['groupid'])
