@@ -2,6 +2,10 @@ DEBIAN_PACKAGES=python-dev \
 		python-qt4 python-qt4-dev python-qt4-doc \
 		python-pyside pyside-tools
 
+FEDORA_PACKAGES=python-devel \
+		python-qt5 python-qt5-devel python-qt5-doc \
+		python-pyside pyside-tools
+
 # These are the input UI (XML) files
 UI_FILES=about_window.ui \
 	hex_widget.ui \
@@ -52,6 +56,8 @@ help:
 	@echo "Options:"
 	@echo "   $$ make debian  -  Installed required Python packages,"
 	@echo "                     on Debian and Ubuntu."
+	@echo "   $$ make fedora  -  Installed required Python packages,"
+	@echo "                     on Fedora."
 	@echo "   $$ make build   -  Build/Compile files"
 	@echo "   $$ make run     -  Runs the iPhone Backup Explorer"
 	@echo "   $$ make clean   -  Remove compiled files"
@@ -101,3 +107,11 @@ run: build
 debian:
 	@sudo -p "Enter SUDO passwod to install pyQT4/PySide packages: " \
 		apt-get install $(DEBIAN_PACKAGES)
+
+##
+## Helper target to install required packages on Fedora
+##
+.PHONY: fedora
+fedora:
+	@sudo -p "Enter SUDO passwod to install pyQT5/PySide packages: " \
+		dnf install $(FEDORA_PACKAGES)
